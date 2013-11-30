@@ -39,11 +39,13 @@ config = [{
                 {
                     'name': 'download_directory',
                     'type': 'dropdown',
+                    'advanced': True,
                     'values': [ ('Default Directory','Default Directory') ],
                     'description': 'Download to this directory. Folders must be set-up in uTorrent client to appear here.',
                 },
                 {
                     'name': 'download_subpath',
+                    'advanced': True,
                     'description': 'Download directory sub-path.',
                 },
                 {

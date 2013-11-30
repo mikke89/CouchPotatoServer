@@ -371,7 +371,6 @@ class uTorrentAPI(object):
             utorrent_dirs = json.loads(self._request(action))
             for dir in utorrent_dirs['download-dirs']:
                 dirs.append( dir['path'] )
-                log.debug('uTorrent download dir: %s', dir['path'])
         except Exception, err:
             log.error('Failed to get download directories from uTorrent: %s', err)
         return dirs
