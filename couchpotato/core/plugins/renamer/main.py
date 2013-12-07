@@ -644,10 +644,11 @@ Remove it if you want it to be renamed (again, or at least let it try again)
 
         # Match all found ignore files with the tag_files and delete if found
         for tag_file in tag_files:
-            ignore_file = fnmatch.filter(ignore_files, '%s.%s.ignore' % (re.escape(os.path.splitext(tag_file)[0]), tag if tag else '*'))
+            ignore_file = fnmatch.filter(ignore_files, '%s.%s.ignore' % (os.path.splitext(tag_file)[0], tag if tag else '*'))
             for filename in ignore_file:
                 try:
                     os.remove(filename)
+                    ignore_files.remove(filename)
                 except:
                     log.debug('Unable to remove ignore file: %s. Error: %s.' % (filename, traceback.format_exc()))
 
