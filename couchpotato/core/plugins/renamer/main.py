@@ -3,7 +3,7 @@ from couchpotato.api import addApiView
 from couchpotato.core.event import addEvent, fireEvent, fireEventAsync
 from couchpotato.core.helpers.encoding import toUnicode, ss, sp
 from couchpotato.core.helpers.variable import getExt, mergeDicts, getTitle, \
-    getImdb, link, symlink, tryInt, splitString
+    getImdb, link, symlink, tryInt, splitString, fnEscape
 from couchpotato.core.logger import CPLog
 from couchpotato.core.plugins.base import Plugin
 from couchpotato.core.settings.model import Library, File, Profile, Release, \
@@ -114,7 +114,7 @@ class Renamer(Plugin):
             return
         else:
             for item in no_process:
-                if from_folder in item:
+                if '%s%s' % (from_folder, os.path.sep) in item:
                     log.error('To protect your data, the movie libraries can\'t be inside of or the same as the "from" folder.')
                     return
 
@@ -146,7 +146,7 @@ class Renamer(Plugin):
 
         if movie_folder:
             for item in no_process:
-                if movie_folder in item:
+                if '%s%s' % (movie_folder, os.path.sep) in item:
                     log.error('To protect your data, the movie libraries can\'t be inside of or the same as the provided movie folder.')
                     return
 
@@ -644,7 +644,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
 
         # Match all found ignore files with the tag_files and delete if found
         for tag_file in tag_files:
-            ignore_file = fnmatch.filter(ignore_files, '%s.%s.ignore' % (os.path.splitext(tag_file)[0], tag if tag else '*'))
+            ignore_file = fnmatch.filter(ignore_files, fnEscape('%s.%s.ignore' % (os.path.splitext(tag_file)[0], tag if tag else '*')))
             for filename in ignore_file:
                 try:
                     os.remove(filename)
@@ -678,7 +678,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
 
         # Match all found ignore files with the tag_files and return True found
         for tag_file in tag_files:
-            ignore_file = fnmatch.filter(ignore_files, '%s.%s.ignore' % (os.path.splitext(tag_file)[0], tag if tag else '*'))
+            ignore_file = fnmatch.filter(ignore_files, fnEscape('%s.%s.ignore' % (os.path.splitext(tag_file)[0], tag if tag else '*')))
             if ignore_file:
                 return True
 
@@ -821,7 +821,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
                 try:
                     for rel in rels:
                         rel_dict = rel.to_dict({'info': {}})
-                        movie_dict = fireEvent('movie.get', rel.movie_id, single = True)
+                        movie_dict = fireEvent('media.get', media_id = rel.movie_id, single = True)
 
                         if not isinstance(rel_dict['info'], (dict)):
                             log.error('Faulty release found without any info, ignoring.')
@@ -879,7 +879,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
                                     fireEvent('download.remove_failed', release_download, single = True)
 
                                     if self.conf('next_on_failed'):
-                                        fireEvent('movie.searcher.try_next_release', movie_id = rel.movie_id)
+                                        fireEvent('movie.searcher.try_next_release', media_id = rel.movie_id)
                                 elif release_download['status'] == 'completed':
                                     log.info('Download of %s completed!', release_download['name'])
                                     if self.statusInfoComplete(release_download):
