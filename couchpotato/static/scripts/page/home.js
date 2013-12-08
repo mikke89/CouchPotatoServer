@@ -22,6 +22,7 @@ Page.Home = new Class({
 			self.createAvailable.bind(self),
 			self.createSoon.bind(self),
 			self.createSuggestions.bind(self),
+			self.createCharts.bind(self),
 			self.createLate.bind(self)
 		);
 
@@ -153,6 +154,21 @@ Page.Home = new Class({
 		});
 
 		$(self.suggestion_list).inject(self.el);
+
+
+	},
+
+	createCharts: function(){
+		var self = this;
+
+		// Suggest
+		self.charts = new Charts({
+			'onLoaded': function(){
+				self.chain.callChain();
+			}
+		});
+
+		$(self.charts).inject(self.el);
 
 
 	},

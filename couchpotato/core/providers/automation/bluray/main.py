@@ -72,4 +72,28 @@ class Bluray(Automation, RSS):
                 if self.isMinimalMovie(imdb):
                     movies.append(imdb['imdb'])
 
-        return movies
+        return
+
+
+    def getMovieInfoList(self):
+        movie_list = {'name': 'Blu-ray.com - New Releases', 'success':True,'list': []}
+
+        rss_movies = self.getRSSData(self.rss_url)
+
+        for movie in rss_movies:
+            name = self.getTextElement(movie, 'title').lower().split('blu-ray')[0].strip('(').rstrip()
+            year = self.getTextElement(movie, 'description').split('|')[1].strip('(').strip()
+
+            if not name.find('/') == -1: # make sure it is not a double movie release
+                continue
+
+            if tryInt(year) < self.getMinimal('year'):
+                continue
+
+            movie = self.search(name, year)
+
+            if movie:
+                #if self.isMinimalMovie(movie):
+                movie_list['list'].append( movie )
+
+        return movie_list

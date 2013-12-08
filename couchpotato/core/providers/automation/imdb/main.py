@@ -109,3 +109,38 @@ class IMDBAutomation(IMDBBase):
                         log.error('Failed loading IMDB chart results from %s: %s', (url, traceback.format_exc()))
 
         return movies
+
+
+    def getMovieInfoList(self):
+        movie_list = {'name': 'Imdb - BoxOffice', 'success':True, 'list': []}
+
+        for url in self.chart_urls:
+            if self.conf('automation_charts_%s' % url):
+                data = self.getHTMLData(self.chart_urls[url])
+                if data:
+                    html = BeautifulSoup(data)
+
+                    try:
+                        result_div = html.find('div', attrs = {'id': 'main'})
+
+                        try:
+                            if url in self.first_table:
+                                table = result_div.find('table')
+                                result_div = table if table else result_div
+                        except:
+                            pass
+
+                        imdb_ids = getImdb(str(result_div), multiple = True)
+
+                        for imdb_id in imdb_ids:
+                            info = self.getInfo(imdb_id)
+                            #if info and self.isMinimalMovie(info):
+                            movie_list['list'].append(info)
+
+                            if self.shuttingDown():
+                                break
+
+                    except:
+                        log.error('Failed loading IMDB chart results from %s: %s', (url, traceback.format_exc()))
+
+        return movie_list

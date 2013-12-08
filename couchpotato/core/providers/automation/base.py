@@ -18,6 +18,7 @@ class Automation(Provider):
 
     def __init__(self):
         addEvent('automation.get_movies', self._getMovies)
+        addEvent('automation.get_movie_list', self._getMovieList)
 
     def _getMovies(self):
 
@@ -31,6 +32,13 @@ class Automation(Provider):
         self.last_checked = time.time()
 
         return self.getIMDBids()
+
+    def _getMovieList(self):
+
+        if self.isDisabled():
+            return
+
+        return self.getMovieInfoList()
 
     def search(self, name, year = None, imdb_only = False):
 
@@ -91,6 +99,10 @@ class Automation(Provider):
 
     def getIMDBids(self):
         return []
+
+    def getMovieInfoList(self):
+        example_list = {'name': 'List not available for this provider: %s' % Env.get('app'), 'success':False, 'list': []}
+        return example_list
 
     def canCheck(self):
         return time.time() > self.last_checked + self.interval
