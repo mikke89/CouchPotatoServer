@@ -12,39 +12,9 @@ var Charts = new Class({
 	create: function(){
 		var self = this;
 
-		self.el = new Element('div.charts', {
-			'events': {
-				'click:relay(a.delete)': function(e, el){
-					(e).stop();
-
-					$(el).getParent('.media_result').destroy();
-
-					Api.request('suggestion.ignore', {
-						'data': {
-							'imdb': el.get('data-ignore')
-						},
-						'onComplete': self.fill.bind(self)
-					});
-
-				},
-				'click:relay(a.eye-open)': function(e, el){
-					(e).stop();
-
-					$(el).getParent('.media_result').destroy();
-
-					Api.request('suggestion.ignore', {
-						'data': {
-							'imdb': el.get('data-seen'),
-							'mark_seen': 1
-						},
-						'onComplete': self.fill.bind(self)
-					});
-
-				}
-			}
-		}).grab(
+		self.el = new Element('div.charts').grab(
 			new Element('h2', {
-				'text': 'Charts!'
+				'text': 'Charts'
 			})
 		);
 
@@ -139,6 +109,7 @@ var Charts = new Class({
 		var self = this;
 
 		setTimeout(function(){
+		    /*
 			$(m).destroy();
 
 			Api.request('suggestion.ignore', {
@@ -148,7 +119,7 @@ var Charts = new Class({
 				},
 				'onComplete': self.fill.bind(self)
 			});
-
+            */
 		}, 3000);
 
 	},

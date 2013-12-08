@@ -11,6 +11,7 @@ log = CPLog(__name__)
 class Automation(Provider):
 
     enabled_option = 'automation_enabled'
+    chart_enabled_option = 'chart_display_enabled'
     http_time_between_calls = 2
 
     interval = 1800
@@ -18,7 +19,7 @@ class Automation(Provider):
 
     def __init__(self):
         addEvent('automation.get_movies', self._getMovies)
-        addEvent('automation.get_movie_list', self._getMovieList)
+        addEvent('automation.get_chart_list', self._getChartList)
 
     def _getMovies(self):
 
@@ -33,9 +34,9 @@ class Automation(Provider):
 
         return self.getIMDBids()
 
-    def _getMovieList(self):
+    def _getChartList(self):
 
-        if self.isDisabled():
+        if not (self.conf(self.chart_enabled_option) or self.conf(self.chart_enabled_option) is None):
             return
 
         return self.getMovieInfoList()
@@ -101,8 +102,8 @@ class Automation(Provider):
         return []
 
     def getMovieInfoList(self):
-        example_list = {'name': 'List not available for this provider: %s' % Env.get('app'), 'success':False, 'list': []}
-        return example_list
+        # Example return: [ {'name': 'Display name of list', 'list': []} ]
+        return
 
     def canCheck(self):
         return time.time() > self.last_checked + self.interval

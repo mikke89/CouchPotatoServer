@@ -76,8 +76,8 @@ class Bluray(Automation, RSS):
 
 
     def getMovieInfoList(self):
-        movie_list = {'name': 'Blu-ray.com - New Releases', 'success':True,'list': []}
-
+        movie_list = {'name': 'Blu-ray.com - New Releases','list': []}
+        max_items = int(self.conf('max_items', section='charts', default=5))
         rss_movies = self.getRSSData(self.rss_url)
 
         for movie in rss_movies:
@@ -87,13 +87,14 @@ class Bluray(Automation, RSS):
             if not name.find('/') == -1: # make sure it is not a double movie release
                 continue
 
-            if tryInt(year) < self.getMinimal('year'):
-                continue
-
             movie = self.search(name, year)
 
             if movie:
-                #if self.isMinimalMovie(movie):
                 movie_list['list'].append( movie )
+                if len(movie_list['list']) >= max_items:
+                    break
 
-        return movie_list
+        if not movie_list['list']:
+            return
+
+        return [ movie_list ]

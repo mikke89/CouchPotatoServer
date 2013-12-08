@@ -73,6 +73,12 @@ class IMDBAutomation(IMDBBase):
         'boxoffice': 'http://www.imdb.com/chart/',
     }
 
+    chart_names = {
+        'theater': 'IMDB - Movies in Theaters',
+        'top250': 'IMDB - Top 250 Movies',
+        'boxoffice': 'IMDB - Box Office',
+    }
+
     first_table = ['boxoffice']
 
     def getIMDBids(self):
@@ -112,10 +118,12 @@ class IMDBAutomation(IMDBBase):
 
 
     def getMovieInfoList(self):
-        movie_list = {'name': 'Imdb - BoxOffice', 'success':True, 'list': []}
+        movie_lists = []
+        max_items = int(self.conf('max_items', section='charts', default=5))
 
         for url in self.chart_urls:
-            if self.conf('automation_charts_%s' % url):
+            if self.conf('chart_display_%s' % url):
+                movie_list = {'name': self.chart_names[url], 'list': []}
                 data = self.getHTMLData(self.chart_urls[url])
                 if data:
                     html = BeautifulSoup(data)
@@ -132,15 +140,17 @@ class IMDBAutomation(IMDBBase):
 
                         imdb_ids = getImdb(str(result_div), multiple = True)
 
-                        for imdb_id in imdb_ids:
+                        for imdb_id in imdb_ids[0:max_items]:
                             info = self.getInfo(imdb_id)
-                            #if info and self.isMinimalMovie(info):
                             movie_list['list'].append(info)
 
                             if self.shuttingDown():
                                 break
-
                     except:
                         log.error('Failed loading IMDB chart results from %s: %s', (url, traceback.format_exc()))
 
-        return movie_list
+                    if movie_list['list']:
+                            movie_lists.append(movie_list)
+
+
+        return movie_lists
