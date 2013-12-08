@@ -72,7 +72,7 @@ class Bluray(Automation, RSS):
                 if self.isMinimalMovie(imdb):
                     movies.append(imdb['imdb'])
 
-        return
+        return movies
 
 
     def getMovieInfoList(self):

@@ -108,19 +108,7 @@ var Charts = new Class({
 	afterAdded: function(m, movie){
 		var self = this;
 
-		setTimeout(function(){
-		    /*
-			$(m).destroy();
-
-			Api.request('suggestion.ignore', {
-				'data': {
-					'imdb': movie.imdb,
-					'remove_only': true
-				},
-				'onComplete': self.fill.bind(self)
-			});
-            */
-		}, 3000);
+		// Maybe do something here in the future
 
 	},
 

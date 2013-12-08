@@ -155,13 +155,12 @@ Page.Home = new Class({
 
 		$(self.suggestion_list).inject(self.el);
 
-
 	},
 
 	createCharts: function(){
 		var self = this;
 
-		// Suggest
+		// Charts
 		self.charts = new Charts({
 			'onLoaded': function(){
 				self.chain.callChain();
@@ -169,7 +168,6 @@ Page.Home = new Class({
 		});
 
 		$(self.charts).inject(self.el);
-
 
 	},
 

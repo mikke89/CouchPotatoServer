@@ -3,7 +3,6 @@ from couchpotato.api import addApiView
 from couchpotato.core.logger import CPLog
 from couchpotato.core.event import addEvent,fireEvent
 from couchpotato.core.plugins.base import Plugin
-from couchpotato.environment import Env
 from sqlalchemy.orm import joinedload_all
 from sqlalchemy.sql.expression import or_
 
