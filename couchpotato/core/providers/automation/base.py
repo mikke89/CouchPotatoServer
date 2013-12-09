@@ -39,7 +39,7 @@ class Automation(Provider):
         if not (self.conf(self.chart_enabled_option) or self.conf(self.chart_enabled_option) is None):
             return
 
-        return self.getMovieInfoList()
+        return self.getChartList()
 
     def search(self, name, year = None, imdb_only = False):
 
@@ -101,7 +101,7 @@ class Automation(Provider):
     def getIMDBids(self):
         return []
 
-    def getMovieInfoList(self):
+    def getChartList(self):
         # Example return: [ {'name': 'Display name of list', 'list': []} ]
         return
 

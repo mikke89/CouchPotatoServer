@@ -75,7 +75,8 @@ class Bluray(Automation, RSS):
         return movies
 
 
-    def getMovieInfoList(self):
+    def getChartList(self):
+        # Nearly identical to 'getIMDBids', but we don't care about minimalMovie and return all movie data (not just id)
         movie_list = {'name': 'Blu-ray.com - New Releases','list': []}
         max_items = int(self.conf('max_items', section='charts', default=5))
         rss_movies = self.getRSSData(self.rss_url)
