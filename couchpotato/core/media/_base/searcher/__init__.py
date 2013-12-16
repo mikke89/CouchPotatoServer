@@ -50,6 +50,22 @@ config = [{
                     'default': 'german, dutch, french, truefrench, danish, swedish, spanish, italian, korean, dubbed, swesub, korsub, dksubs, vain',
                     'description': 'Ignores releases that match any of these sets. (Works like explained above)'
                 },
+                {
+                    'name': 'max_seeders_score',
+                    'label': 'Max Seeders Score',
+                    'advanced': True,
+                    'type': 'int',
+                    'default': 50,
+                    'description': 'Maximum added score awarded to a release based on number of seeders.'
+                },
+                {
+                    'name': 'max_leechers_score',
+                    'label': 'Max Leechers Score',
+                    'advanced': True,
+                    'type': 'int',
+                    'default': 25,
+                    'description': 'Maximum added score awarded to a release based on number of leechers.'
+                },
             ],
         },
     ],

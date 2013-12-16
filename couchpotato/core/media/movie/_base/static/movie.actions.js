@@ -186,6 +186,7 @@ MA.Release = new Class({
 				new Element('span.size', {'text': 'Size'}),
 				new Element('span.age', {'text': 'Age'}),
 				new Element('span.score', {'text': 'Score'}),
+				new Element('span.seeders', {'text': 'Seeds', 'title': 'Seeders / Leechers'}),
 				new Element('span.provider', {'text': 'Provider'})
 			).inject(self.release_container)
 
@@ -194,7 +195,8 @@ MA.Release = new Class({
 				var status = Status.get(release.status_id),
 					quality = Quality.getProfile(release.quality_id) || {},
 					info = release.info,
-					provider = self.get(release, 'provider') + (release.info['provider_extra'] ? self.get(release, 'provider_extra') : '');
+					provider = self.get(release, 'provider') + (release.info['provider_extra'] ? self.get(release, 'provider_extra') : ''),
+					seeders = self.get(release, 'seeders') + ' / ' + self.get(release, 'leechers');
 				release.status = status;
 
 				var release_name = self.get(release, 'name');
@@ -220,6 +222,7 @@ MA.Release = new Class({
 					new Element('span.size', {'text': release.info['size'] ? Math.floor(self.get(release, 'size')) : 'n/a'}),
 					new Element('span.age', {'text': self.get(release, 'age')}),
 					new Element('span.score', {'text': self.get(release, 'score')}),
+					new Element('span.seeders', {'text': seeders, 'title': seeders}),
 					new Element('span.provider', { 'text': provider, 'title': provider }),
 					release.info['detail_url'] ? new Element('a.info.icon2', {
 						'href': release.info['detail_url'],
