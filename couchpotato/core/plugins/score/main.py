@@ -35,8 +35,8 @@ class Score(Plugin):
         # Torrents only
         if nzb.get('seeders'):
             try:
-                score += min(nzb.get('seeders') / 5, Env.setting('max_seeders_score', section = 'searcher'))
-                score += min(nzb.get('leechers') / 10, Env.setting('max_leechers_score', section = 'searcher'))
+                score += min(nzb.get('seeders') * 100 / 15, Env.setting('max_seeders_score', section = 'searcher'))
+                score += min(nzb.get('leechers') * 100/ 30, Env.setting('max_leechers_score', section = 'searcher'))
             except:
                 pass
 
