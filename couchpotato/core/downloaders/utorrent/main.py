@@ -3,7 +3,7 @@ from bencode import bencode as benc, bdecode
 from couchpotato.core.downloaders.base import Downloader, ReleaseDownloadList
 from couchpotato.core.event import fireEvent
 from couchpotato.core.helpers.encoding import isInt, ss, sp
-from couchpotato.core.helpers.variable import tryInt, tryFloat
+from couchpotato.core.helpers.variable import tryInt, tryFloat, cleanHost
 from couchpotato.core.logger import CPLog
 from datetime import timedelta
 from hashlib import sha1
@@ -25,11 +25,21 @@ class uTorrent(Downloader):
 
     protocol = ['torrent', 'torrent_magnet']
     utorrent_api = None
+    status_flags = {
+        'STARTED'     : 1,
+        'CHECKING'    : 2,
+        'CHECK-START' : 4,
+        'CHECKED'     : 8,
+        'ERROR'       : 16,
+        'PAUSED'      : 32,
+        'QUEUED'      : 64,
+        'LOADED'      : 128
+    }
     download_directories = []
 
     def connect(self):
         # Load host from config and split out port.
-        host = self.conf('host').split(':')
+        host = cleanHost(self.conf('host'), protocol = False).split(':')
         if not isInt(host[1]):
             log.error('Config properties are not filled in correctly, port is missing.')
             return False
@@ -44,7 +54,7 @@ class uTorrent(Downloader):
         if not media: media = {}
         if not data: data = {}
 
-        log.debug('Sending "%s" (%s) to uTorrent.', (data.get('name'), data.get('protocol')))
+        log.debug("Sending '%s' (%s) to uTorrent.", (data.get('name'), data.get('protocol')))
 
         if not self.connect():
             return False
@@ -79,7 +89,7 @@ class uTorrent(Downloader):
             torrent_hash = re.findall('urn:btih:([\w]{32,40})', data.get('url'))[0].upper()
             torrent_params['trackers'] = '%0D%0A%0D%0A'.join(self.torrent_trackers)
         else:
-            info = bdecode(filedata)["info"]
+            info = bdecode(filedata)['info']
             torrent_hash = sha1(benc(info)).hexdigest().upper()
 
         torrent_filename = self.createFileName(data, filedata, media)
@@ -122,23 +132,23 @@ class uTorrent(Downloader):
         log.debug('Checking uTorrent download status.')
 
         if not self.connect():
-            return False
+            return []
 
         release_downloads = ReleaseDownloadList(self)
 
         data = self.utorrent_api.get_status()
         if not data:
             log.error('Error getting data from uTorrent')
-            return False
+            return []
 
         queue = json.loads(data)
         if queue.get('error'):
             log.error('Error getting data from uTorrent: %s', queue.get('error'))
-            return False
+            return []
 
         if not queue.get('torrents'):
             log.debug('Nothing in queue')
-            return False
+            return []
 
         # Get torrents
         for torrent in queue['torrents']:
@@ -152,21 +162,10 @@ class uTorrent(Downloader):
                 except:
                     log.debug('Failed getting files from torrent: %s', torrent[2])
     
-                status_flags = {
-                    "STARTED"     : 1,
-                    "CHECKING"    : 2,
-                    "CHECK-START" : 4,
-                    "CHECKED"     : 8,
-                    "ERROR"       : 16,
-                    "PAUSED"      : 32,
-                    "QUEUED"      : 64,
-                    "LOADED"      : 128
-                }
-    
                 status = 'busy'
-                if (torrent[1] & status_flags["STARTED"] or torrent[1] & status_flags["QUEUED"]) and torrent[4] == 1000:
+                if (torrent[1] & self.status_flags['STARTED'] or torrent[1] & self.status_flags['QUEUED']) and torrent[4] == 1000:
                     status = 'seeding'
-                elif (torrent[1] & status_flags["ERROR"]):
+                elif (torrent[1] & self.status_flags['ERROR']):
                     status = 'failed'
                 elif torrent[4] == 1000:
                     status = 'completed'
@@ -208,12 +207,18 @@ class uTorrent(Downloader):
         #Removes all read-on ly flags in a for all files
         for filepath in files:
             if os.path.isfile(filepath):
-                try:
-                    #Windows only needs S_IWRITE, but we bitwise-or with current perms to preserve other permission bits on Linux
-                    os.chmod(filepath, stat.S_IWRITE | os.stat(filepath).st_mode)
-                except Exception, err:
-                    log.error('Failed to set write permission. Error message: %s', err)
+                #Windows only needs S_IWRITE, but we bitwise-or with current perms to preserve other permission bits on Linux
+                os.chmod(filepath, stat.S_IWRITE | os.stat(filepath).st_mode)
 
+    def registerDownloadDirectories(self):
+        if not self.utorrent_api:
+            return False
+
+        self.download_directories = self.utorrent_api.get_download_directories()
+        if not self.download_directories:
+            return False
+
+        directorie
 
     def registerDownloadDirectories(self):
         if not self.utorrent_api:
@@ -262,7 +267,7 @@ class uTorrentAPI(object):
         if time.time() > self.last_time + 1800:
             self.last_time = time.time()
             self.token = self.get_token()
-        request = urllib2.Request(self.url + "?token=" + self.token + "&" + action, data)
+        request = urllib2.Request(self.url + '?token=' + self.token + '&' + action, data)
         try:
             open_request = self.opener.open(request)
             response = open_request.read()
@@ -276,17 +281,7 @@ class uTorrentAPI(object):
             if err.code == 401:
                 log.error('Invalid uTorrent Username or Password, check your config')
             else:
-                log.error('uTorrent HTTPError: %s', err)
-        except urllib2.URLError, err:
-            log.error('Unable to connect to uTorrent %s', err)
-        return False
-
-    def get_token(self):
-        request = self.opener.open(self.url + "token.html")
-        token = re.findall("<div.*?>(.*?)</", request.read())[0]
-        return token
-
-    def add_torrent_uri(self, filename, torrent, download_dir_id = -1, download_subpath = False):
+                log.err    def add_torrent_uri(self, filename, torrent, download_dir_id = -1, download_subpath = False):
         action = "action=add-url&s=%s" % urllib.quote(torrent)
         if download_dir_id >= 0:
             action += "&download_dir=%d" % download_dir_id
@@ -303,37 +298,25 @@ class uTorrentAPI(object):
             action += "&path=%s" % urllib.quote(download_subpath)
         log.debug('Sending command to uTorrent: %s', action)
         return self._request(action, {"torrent_file": (ss(filename), filedata)})
-
-    def set_torrent(self, hash, params):
-        action = "action=setprops&hash=%s" % hash
-        for k, v in params.iteritems():
-            action += "&s=%s&v=%s" % (k, v)
-        return self._request(action)
-
-    def pause_torrent(self, hash, pause = True):
-        if pause:
-            action = "action=pause&hash=%s" % hash
-        else:
-            action = "action=unpause&hash=%s" % hash
-        return self._request(action)
+._request(action)
 
     def stop_torrent(self, hash):
-        action = "action=stop&hash=%s" % hash
+        action = 'action=stop&hash=%s' % hash
         return self._request(action)
 
     def remove_torrent(self, hash, remove_data = False):
         if remove_data:
-            action = "action=removedata&hash=%s" % hash
+            action = 'action=removedata&hash=%s' % hash
         else:
-            action = "action=remove&hash=%s" % hash
+            action = 'action=remove&hash=%s' % hash
         return self._request(action)
 
     def get_status(self):
-        action = "list=1"
+        action = 'list=1'
         return self._request(action)
 
     def get_settings(self):
-        action = "action=getsettings"
+        action = 'action=getsettings'
         settings_dict = {}
         try:
             utorrent_settings = json.loads(self._request(action))
@@ -365,7 +348,7 @@ class uTorrentAPI(object):
         return self._request(action)
 
     def get_files(self, hash):
-        action = "action=getfiles&hash=%s" % hash
+        action = 'action=getfiles&hash=%s' % hash
         return self._request(action)
         
     def get_download_directories(self):

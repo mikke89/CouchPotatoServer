@@ -3,7 +3,7 @@ from couchpotato.api import addApiView
 from couchpotato.core.event import addEvent, fireEvent, fireEventAsync
 from couchpotato.core.helpers.encoding import toUnicode, ss, sp
 from couchpotato.core.helpers.variable import getExt, mergeDicts, getTitle, \
-    getImdb, link, symlink, tryInt, splitString, fnEscape
+    getImdb, link, symlink, tryInt, splitString, fnEscape, isSubFolder
 from couchpotato.core.logger import CPLog
 from couchpotato.core.plugins.base import Plugin
 from couchpotato.core.settings.model import Library, File, Profile, Release, \
@@ -125,7 +125,7 @@ class Renamer(Plugin):
             return
         else:
             for item in no_process:
-                if '%s%s' % (base_folder, os.path.sep) in item:
+                if isSubFolder(item, base_folder):
                     log.error('To protect your data, the media libraries can\'t be inside of or the same as the "from" folder.')
                     return
 
@@ -157,13 +157,13 @@ class Renamer(Plugin):
 
         if media_folder:
             for item in no_process:
-                if '%s%s' % (media_folder, os.path.sep) in item:
+                if isSubFolder(item, media_folder):
                     log.error('To protect your data, the media libraries can\'t be inside of or the same as the provided media folder.')
                     return
 
         # Make sure a checkSnatched marked all downloads/seeds as such
         if not release_download and self.conf('run_every') > 0:
-            fireEvent('renamer.check_snatched')
+            self.checkSnatched(fire_scan = False)
 
         self.renaming_started = True
 
@@ -211,6 +211,10 @@ class Renamer(Plugin):
         # Statuses
         done_status, active_status, downloaded_status, snatched_status, seeding_status = \
             fireEvent('status.get', ['done', 'active', 'downloaded', 'snatched', 'seeding'], single = True)
+
+        # Tag release folder as failed_rename in case no groups were found. This prevents check_snatched from removing the release from the downloader.
+        if not groups and self.statusInfoComplete(release_download):
+            self.tagRelease(release_download = release_download, tag = 'failed_rename')
 
         for group_identifier in groups:
 
@@ -508,7 +512,10 @@ class Renamer(Plugin):
                         os.remove(src)
 
                         parent_dir = os.path.dirname(src)
-                        if delete_folders.count(parent_dir) == 0 and os.path.isdir(parent_dir) and not '%s%s' % (parent_dir, os.path.sep) in [destination, media_folder] and not '%s%s' % (base_folder, os.path.sep) in parent_dir:
+                        if delete_folders.count(parent_dir) == 0 and os.path.isdir(parent_dir) and \
+                            not isSubFolder(destination, parent_dir) and not isSubFolder(media_folder, parent_dir) and \
+                            not isSubFolder(parent_dir, base_folder):
+
                             delete_folders.append(parent_dir)
 
                 except:
@@ -524,6 +531,7 @@ class Renamer(Plugin):
 
             # Rename all files marked
             group['renamed_files'] = []
+            failed_rename = False
             for src in rename_files:
                 if rename_files[src]:
                     dst = rename_files[src]
@@ -536,8 +544,17 @@ class Renamer(Plugin):
                         self.moveFile(src, dst, forcemove = not self.downloadIsTorrent(release_download) or self.fileIsAdded(src, group))
                         group['renamed_files'].append(dst)
                     except:
-                        log.error('Failed moving the file "%s" : %s', (os.path.basename(src), traceback.format_exc()))
-                        self.tagRelease(group = group, tag = 'failed_rename')
+                        log.error('Failed ranaming the file "%s" : %s', (os.path.basename(src), traceback.format_exc()))
+                        failed_rename = True
+                        break
+
+            # If renaming failed tag the release folder as failed and continue with next group. Note that all old files have already been deleted.
+            if failed_rename:
+                self.tagRelease(group = group, tag = 'failed_rename')
+                continue
+            # If renaming succeeded, make sure it is not tagged as failed (scanner didn't return a group, but a download_ID was provided in an earlier attempt)
+            else:
+                self.untagRelease(group = group, tag = 'failed_rename')
 
             # Tag folder if it is in the 'from' folder and it will not be removed because it is a torrent
             if self.movieInFromFolder(media_folder) and self.downloadIsTorrent(release_download):
@@ -575,7 +592,7 @@ class Renamer(Plugin):
             # Break if CP wants to shut down
             if self.shuttingDown():
                 break
-
+ 
         self.renaming_started = False
 
     def getRenameExtras(self, extra_type = '', replacements = None, folder_name = '', file_name = '', destination = '', group = None, current_file = '', remove_multiple = False):
@@ -634,24 +651,37 @@ Remove it if you want it to be renamed (again, or at least let it try again)
             if not os.path.isfile(tag_filename):
                 self.createFile(tag_filename, text)
 
-    def untagRelease(self, release_download, tag = ''):
+    def untagRelease(self, group = None, release_download = None, tag = ''):
         if not release_download:
             return
 
         tag_files = []
+        folder = None
 
-        folder = release_download['folder']
-        if not os.path.isdir(folder):
+        # Tag movie files if they are known
+        if isinstance(group, dict):
+            tag_files = [sorted(list(group['files']['movie']))[0]]
+
+            folder = group['parentdir']
+            if not group.get('dirname') or not os.path.isdir(folder):
+                return False
+
+        elif isinstance(release_download, dict):
+            # Untag download_files if they are known
+            if release_download['files']:
+                tag_files = splitString(release_download['files'], '|')
+
+            # Untag all files in release folder
+            else:
+                for root, folders, names in os.walk(release_download['folder']):
+                    tag_files.extend([sp(os.path.join(root, name)) for name in names if not os.path.splitext(name)[1] == '.ignore'])
+
+            folder = release_download['folder']
+            if not os.path.isdir(folder):
+                return False
+
+        if not folder:
             return False
-
-        # Untag download_files if they are known
-        if release_download['files']:
-            tag_files = splitString(release_download['files'], '|')
-
-        # Untag all files in release folder
-        else:
-            for root, folders, names in os.walk(release_download['folder']):
-                tag_files.extend([sp(os.path.join(root, name)) for name in names if not os.path.splitext(name)[1] == '.ignore'])
 
         # Find all .ignore files in folder
         ignore_files = []
@@ -664,7 +694,6 @@ Remove it if you want it to be renamed (again, or at least let it try again)
             for filename in ignore_file:
                 try:
                     os.remove(filename)
-                    ignore_files.remove(filename)
                 except:
                     log.debug('Unable to remove ignore file: %s. Error: %s.' % (filename, traceback.format_exc()))
 
@@ -807,7 +836,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
         except:
             loge('Couldn\'t remove empty directory %s: %s', (folder, traceback.format_exc()))
 
-    def checkSnatched(self):
+    def checkSnatched(self, fire_scan = True):
 
         if self.checking_snatched:
             log.debug('Already checking snatched')
@@ -830,20 +859,29 @@ Remove it if you want it to be renamed (again, or at least let it try again)
 
         # Collect all download information with the download IDs from the releases
         download_ids = []
+        no_status_support = []
         try:
             for rel in rels:
                 rel_dict = rel.to_dict({'info': {}})
                 if rel_dict['info'].get('download_id') and rel_dict['info'].get('download_downloader'):
                     download_ids.append({'id': rel_dict['info']['download_id'], 'downloader': rel_dict['info']['download_downloader']})
+
+                ds = rel_dict['info'].get('download_status_support')
+                if ds == False or ds == 'False':
+                    no_status_support.append(ss(rel_dict['info'].get('download_downloader')))
         except:
             log.error('Error getting download IDs from database')
             self.checking_snatched = False
             return False
 
-        release_downloads = fireEvent('download.status', download_ids, merge = True)
+        release_downloads = fireEvent('download.status', download_ids, merge = True) if download_ids else []
+
+        if len(no_status_support) > 0:
+            log.debug('Download status functionality is not implemented for one of the active downloaders: %s', no_status_support)
+
         if not release_downloads:
-            log.debug('Download status functionality is not implemented for any active downloaders.')
-            fireEvent('renamer.scan')
+            if fire_scan:
+                self.scan()
 
             self.checking_snatched = False
             return True
@@ -858,7 +896,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
                 rel_dict = rel.to_dict({'info': {}})
                 movie_dict = fireEvent('media.get', media_id = rel.movie_id, single = True)
 
-                if not isinstance(rel_dict['info'], (dict)):
+                if not isinstance(rel_dict['info'], dict):
                     log.error('Faulty release found without any info, ignoring.')
                     fireEvent('release.update_status', rel.id, status = ignored_status, single = True)
                     continue
@@ -875,6 +913,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
                 # Find release in downloaders
                 nzbname = self.createNzbName(rel_dict['info'], movie_dict)
 
+                found_release = False
                 for release_download in release_downloads:
                     found_release = False
                     if rel_dict['info'].get('download_id'):
@@ -984,7 +1023,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
             if release_download['scan']:
                 if release_download['pause'] and self.conf('file_action') == 'link':
                     fireEvent('download.pause', release_download = release_download, pause = True, single = True)
-                fireEvent('renamer.scan', release_download = release_download)
+                self.scan(release_download = release_download)
                 if release_download['pause'] and self.conf('file_action') == 'link':
                     fireEvent('download.pause', release_download = release_download, pause = False, single = True)
             if release_download['process_complete']:
@@ -995,8 +1034,8 @@ Remove it if you want it to be renamed (again, or at least let it try again)
                     # Ask the downloader to process the item
                     fireEvent('download.process_complete', release_download = release_download, single = True)
 
-        if scan_required:
-            fireEvent('renamer.scan')
+        if fire_scan and (scan_required or len(no_status_support) > 0):
+            self.scan()
 
         self.checking_snatched = False
         return True
@@ -1043,10 +1082,10 @@ Remove it if you want it to be renamed (again, or at least let it try again)
         return src in group['before_rename']
 
     def statusInfoComplete(self, release_download):
-        return release_download['id'] and release_download['downloader'] and release_download['folder']
+        return release_download.get('id') and release_download.get('downloader') and release_download.get('folder')
 
     def movieInFromFolder(self, media_folder):
-        return media_folder and '%s%s' % (sp(self.conf('from')), os.path.sep) in sp(media_folder) or not media_folder
+        return media_folder and isSubFolder(media_folder, sp(self.conf('from'))) or not media_folder
 
     def extractFiles(self, folder = None, media_folder = None, files = None, cleanup = False):
         if not files: files = []

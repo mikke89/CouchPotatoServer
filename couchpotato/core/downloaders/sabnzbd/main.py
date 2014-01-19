@@ -43,7 +43,7 @@ class Sabnzbd(Downloader):
 
         try:
             if nzb_filename and req_params.get('mode') is 'addfile':
-                sab_data = self.call(req_params, params = {'nzbfile': (ss(nzb_filename), filedata)}, multipart = True)
+                sab_data = self.call(req_params, files = {'nzbfile': (ss(nzb_filename), filedata)})
             else:
                 sab_data = self.call(req_params)
         except URLError:
@@ -75,7 +75,7 @@ class Sabnzbd(Downloader):
             })
         except:
             log.error('Failed getting queue: %s', traceback.format_exc(1))
-            return False
+            return []
 
         # Go through history items
         try:
@@ -85,7 +85,7 @@ class Sabnzbd(Downloader):
             })
         except:
             log.error('Failed getting history json: %s', traceback.format_exc(1))
-            return False
+            return []
 
         release_downloads = ReleaseDownloadList(self)
 
@@ -165,7 +165,7 @@ class Sabnzbd(Downloader):
 
     def call(self, request_params, use_json = True, **kwargs):
 
-        url = cleanHost(self.conf('host')) + 'api?' + tryUrlencode(mergeDicts(request_params, {
+        url = cleanHost(self.conf('host'), ssl = self.conf('ssl')) + 'api?' + tryUrlencode(mergeDicts(request_params, {
            'apikey': self.conf('api_key'),
            'output': 'json'
         }))
