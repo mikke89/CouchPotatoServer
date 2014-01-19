@@ -210,15 +210,6 @@ class uTorrent(Downloader):
                 #Windows only needs S_IWRITE, but we bitwise-or with current perms to preserve other permission bits on Linux
                 os.chmod(filepath, stat.S_IWRITE | os.stat(filepath).st_mode)
 
-    def registerDownloadDirectories(self):
-        if not self.utorrent_api:
-            return False
-
-        self.download_directories = self.utorrent_api.get_download_directories()
-        if not self.download_directories:
-            return False
-
-        directorie
 
     def registerDownloadDirectories(self):
         if not self.utorrent_api:
@@ -281,24 +272,46 @@ class uTorrentAPI(object):
             if err.code == 401:
                 log.error('Invalid uTorrent Username or Password, check your config')
             else:
-                log.err    def add_torrent_uri(self, filename, torrent, download_dir_id = -1, download_subpath = False):
-        action = "action=add-url&s=%s" % urllib.quote(torrent)
+                log.error('uTorrent HTTPError: %s', err)
+        except urllib2.URLError, err:
+            log.error('Unable to connect to uTorrent %s', err)
+        return False
+
+    def get_token(self):
+        request = self.opener.open(self.url + 'token.html')
+        token = re.findall('<div.*?>(.*?)</', request.read())[0]
+        return token
+
+    def add_torrent_uri(self, filename, torrent, download_dir_id = -1, download_subpath = False):
+        action = 'action=add-url&s=%s' % urllib.quote(torrent)
         if download_dir_id >= 0:
-            action += "&download_dir=%d" % download_dir_id
+            action += '&download_dir=%d' % download_dir_id
         if download_subpath:
-            action += "&path=%s" % urllib.quote(download_subpath)
+            action += '&path=%s' % urllib.quote(download_subpath)
         log.debug('Sending command to uTorrent: %s', action)
         return self._request(action)
 
     def add_torrent_file(self, filename, filedata, download_dir_id = -1, download_subpath = False):
-        action = "action=add-file"
+        action = 'action=add-file'
         if download_dir_id >= 0:
-            action += "&download_dir=%d" % download_dir_id
+            action += '&download_dir=%d' % download_dir_id
         if download_subpath:
-            action += "&path=%s" % urllib.quote(download_subpath)
+            action += '&path=%s' % urllib.quote(download_subpath)
         log.debug('Sending command to uTorrent: %s', action)
         return self._request(action, {"torrent_file": (ss(filename), filedata)})
-._request(action)
+
+    def set_torrent(self, hash, params):
+        action = 'action=setprops&hash=%s' % hash
+        for k, v in params.iteritems():
+            action += '&s=%s&v=%s' % (k, v)
+        return self._request(action)
+
+    def pause_torrent(self, hash, pause = True):
+        if pause:
+            action = 'action=pause&hash=%s' % hash
+        else:
+            action = 'action=unpause&hash=%s' % hash
+        return self._request(action)
 
     def stop_torrent(self, hash):
         action = 'action=stop&hash=%s' % hash
