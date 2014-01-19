@@ -148,7 +148,7 @@
         left: 50px;
 	}
     
-    .charts .chart .media_result span.chart_number {
+    .charts .chart .media_result div.chart_number {
         color: white;
         position: absolute;
         top: 0;
@@ -160,6 +160,15 @@
         font: bold 2em/1em Helvetica, Sans-Serif;
         width: 50px;
         height: 60px;
+    }
+
+    .charts .chart .media_result div.chart_number.chart_in_wanted {
+        background: rgb(0, 255, 40); /* fallback color */
+        background: rgba(0, 255, 40, 0.3);
+    }
+    .charts .chart .media_result div.chart_number.chart_in_library {
+        background: rgb(0, 202, 32); /* fallback color */
+        background: rgba(0, 202, 32, 0.3);
     }
 
 

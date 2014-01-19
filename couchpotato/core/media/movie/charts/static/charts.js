@@ -38,6 +38,7 @@ var Charts = new Class({
             }).grab( new Element('h2', {'text': 'Charts'}))
 		);
 
+
 		self.api_request = Api.request('charts.view', {
 			'onComplete': self.fill.bind(self)
 		});
@@ -95,7 +96,9 @@ var Charts = new Class({
 						self.afterAdded(m, movie)
 					}
 				});
-				    m.el.grab( new Element('span.chart_number', { 'text': it++ }));
+				    var in_database_class = movie.in_wanted ? '.chart_in_wanted' : (movie.in_library ? '.chart_in_library' : '');
+				    var in_database_title = movie.in_wanted ? 'Movie in wanted list' : (movie.in_library ? 'Movie in library' : '');
+				    m.el.grab( new Element('div.chart_number' + in_database_class, { 'text': it++, 'title': in_database_title }));
 					m.data_container.grab(
 						new Element('div.actions').adopt(
 							new Element('a.add.icon2', {
@@ -153,7 +156,8 @@ var Charts = new Class({
 	afterAdded: function(m, movie){
 		var self = this;
 
-		// Maybe do something here in the future
+		$(m).getElement('div.chart_number').addClass('chart_in_wanted').setProperty('title','Movie in wanted list');
+
 
 	},
 
