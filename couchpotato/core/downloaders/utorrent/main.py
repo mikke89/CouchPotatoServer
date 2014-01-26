@@ -26,6 +26,7 @@ class uTorrent(Downloader):
 
     protocol = ['torrent', 'torrent_magnet']
     utorrent_api = None
+    testable = True
     status_flags = {
         'STARTED'     : 1,
         'CHECKING'    : 2,

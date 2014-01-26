@@ -15,6 +15,7 @@ class Downloader(Provider):
     protocol = []
     http_time_between_calls = 0
     status_support = True
+    testable = False
 
     torrent_sources = [
         'http://torrage.com/torrent/%s.torrent',
@@ -174,6 +175,15 @@ class Downloader(Provider):
         return super(Downloader, self).isEnabled() and \
             (d_manual and manual or d_manual is False) and \
             (not data or self.isCorrectProtocol(data.get('protocol')))
+
+    def isTestable(self):
+        return {'success': self.testable}
+
+    def _test(self):
+        return {'success': self.test()}
+
+    def test(self):
+        return False
 
     def _pause(self, release_download, pause = True):
         if self.isDisabled(manual = True, data = {}):
