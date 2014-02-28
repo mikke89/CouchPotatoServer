@@ -497,6 +497,7 @@ class Renamer(Plugin):
                     if self.conf('cleanup') and not self.conf('move_leftover') and \
                             (not self.downloadIsTorrent(release_download) or self.fileIsAdded(current_file, group)):
                         remove_files.append(current_file)
+                        log.info('Added leftover file to remove list: %s', current_file)
 
             # Remove files
             delete_folders = []
@@ -1182,6 +1183,7 @@ Remove it if you want it to be renamed (again, or at least let it try again)
                 if cleanup:
                     try:
                         os.remove(filename)
+                        log.info('Removed archive file: %s', filename)
                     except Exception as e:
                         log.error('Failed to remove %s: %s %s', (filename, e, traceback.format_exc()))
                         continue
