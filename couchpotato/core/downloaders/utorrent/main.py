@@ -26,7 +26,6 @@ class uTorrent(Downloader):
 
     protocol = ['torrent', 'torrent_magnet']
     utorrent_api = None
-    testable = True
     status_flags = {
         'STARTED'     : 1,
         'CHECKING'    : 2,
@@ -61,11 +60,6 @@ class uTorrent(Downloader):
             self.registerDownloadDirectories()
 
         return self.utorrent_api
-
-    def test(self):
-        if self.connect() and self.utorrent_api.get_status():
-            return True
-        return False
 
     def download(self, data = None, media = None, filedata = None):
         if not media: media = {}
@@ -143,6 +137,17 @@ class uTorrent(Downloader):
             self.utorrent_api.pause_torrent(torrent_hash)
 
         return self.downloadReturnId(torrent_hash)
+
+    def test(self):
+        if self.connect():
+            build_version = self.utorrent_api.get_build()
+            if not build_version:
+                return False
+            if build_version < 25406:  # This build corresponds to version 3.0.0 stable
+                return False, 'Your uTorrent client is too old, please update to newest version.'
+            return True
+
+        return False
 
     def getAllDownloadStatus(self, ids):
 
@@ -395,6 +400,13 @@ class uTorrentAPI(object):
     def get_files(self, hash):
         action = 'action=getfiles&hash=%s' % hash
         return self._request(action)
+
+    def get_build(self):
+        data = self._request('')
+        if not data:
+            return False
+        response = json.loads(data)
+        return int(response.get('build'))
         
     def get_download_directories(self):
         action = "action=list-dirs"

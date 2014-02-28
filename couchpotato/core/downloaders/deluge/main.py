@@ -92,6 +92,11 @@ class Deluge(Downloader):
         log.info('Torrent sent to Deluge successfully.')
         return self.downloadReturnId(remote_torrent)
 
+    def test(self):
+        if self.connect(True) and self.drpc.test():
+            return True
+        return False
+
     def getAllDownloadStatus(self, ids):
 
         log.debug('Checking Deluge download status.')

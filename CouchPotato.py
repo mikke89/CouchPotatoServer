@@ -133,7 +133,7 @@ if __name__ == '__main__':
         pass
     except SystemExit:
         raise
-    except socket.error as e:
+    except socket.error as nr:
         # log when socket receives SIGINT, but continue.
         # previous code would have skipped over other types of IO errors too.
         if nr != 4:

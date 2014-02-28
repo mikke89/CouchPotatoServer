@@ -15,7 +15,6 @@ class Downloader(Provider):
     protocol = []
     http_time_between_calls = 0
     status_support = True
-    testable = False
 
     torrent_sources = [
         'http://torrage.com/torrent/%s.torrent',
@@ -44,7 +43,6 @@ class Downloader(Provider):
         addEvent('download.remove_failed', self._removeFailed)
         addEvent('download.pause', self._pause)
         addEvent('download.process_complete', self._processComplete)
-        addApiView('download.%s.is_testable' % self.getName().lower(), self.isTestable)
         addApiView('download.%s.test' % self.getName().lower(), self._test)
 
     def getEnabledProtocol(self):
@@ -61,20 +59,6 @@ class Downloader(Provider):
         if self.isDisabled(manual, data):
             return
         return self.download(data = data, media = media, filedata = filedata)
-
-    def isTestable(self):
-        # Checks whether 'test' function has been overrided
-        this_method = getattr(self, 'test')
-        base_method = getattr(Downloader, 'test')
-        if this_method.__func__ is not base_method.__func__:
-            return {'success': True }
-        return {'success': False }
-
-    def _test(self):
-        return {'success': self.test()}
-
-    def test(self):
-        return False
 
     def _getAllDownloadStatus(self, download_ids):
         if self.isDisabled(manual = True, data = {}):
@@ -176,11 +160,11 @@ class Downloader(Provider):
             (d_manual and manual or d_manual is False) and \
             (not data or self.isCorrectProtocol(data.get('protocol')))
 
-    def isTestable(self):
-        return {'success': self.testable}
-
     def _test(self):
-        return {'success': self.test()}
+        t = self.test()
+        if isinstance(t, tuple):
+            return {'success': t[0], 'msg': t[1]}
+        return {'success': t}
 
     def test(self):
         return False

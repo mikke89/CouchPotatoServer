@@ -89,6 +89,11 @@ class Transmission(Downloader):
         log.info('Torrent sent to Transmission successfully.')
         return self.downloadReturnId(remote_torrent['torrent-added']['hashString'])
 
+    def test(self):
+        if self.connect(True) and self.trpc.get_session():
+            return True
+        return False
+
     def getAllDownloadStatus(self, ids):
 
         log.debug('Checking Transmission download status.')
