@@ -8,7 +8,7 @@ from couchpotato.core.helpers.encoding import toUnicode
 from couchpotato.core.helpers.variable import splitString, getImdb, getTitle
 from couchpotato.core.logger import CPLog
 from couchpotato.core.media import MediaBase
-from .index import MediaIndex, MediaStatusIndex, MediaTypeIndex, TitleSearchIndex, TitleIndex, StartsWithIndex
+from .index import MediaIndex, MediaStatusIndex, MediaTypeIndex, TitleSearchIndex, TitleIndex, StartsWithIndex, MediaChildrenIndex
 
 
 log = CPLog(__name__)
@@ -23,6 +23,7 @@ class MediaPlugin(MediaBase):
         'media_by_type': MediaTypeIndex,
         'media_title': TitleIndex,
         'media_startswith': StartsWithIndex,
+        'media_children': MediaChildrenIndex,
     }
 
     def __init__(self):
@@ -382,7 +383,7 @@ class MediaPlugin(MediaBase):
                                 db.delete(release)
                                 total_deleted += 1
 
-                    if total_releases == total_deleted and media['status'] != 'active':
+                    if (total_releases == total_deleted and media['status'] != 'active') or (delete_from == 'wanted' and media['status'] == 'active'):
                         db.delete(media)
                         deleted = True
                     elif new_media_status:
