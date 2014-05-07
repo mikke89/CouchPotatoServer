@@ -11,7 +11,7 @@
 	display: inline-block;
 	width: 50%;
 	vertical-align: top;
-    max-height: 510px;
+    /*max-height: 510px;*/
     overflow-y: auto;
     scrollbar-base-color: #4e5969;
 }
