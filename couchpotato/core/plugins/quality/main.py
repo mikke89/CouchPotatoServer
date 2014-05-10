@@ -325,8 +325,6 @@ class QualityPlugin(Plugin):
             if tryInt(quality['size_min']) <= tryInt(size) <= tryInt(quality['size_max']):
                 log.info2('Found %s via release size: %s MB < %s MB < %s MB', (quality['identifier'], quality['size_min'], size, quality['size_max']))
                 score += 5
-            else:
-                score -= 40
 
         return score
 
@@ -350,6 +348,10 @@ class QualityPlugin(Plugin):
         if penalty and add_score != 0:
             for allow in quality.get('allow', []):
                 score[allow]['score'] -= 40 if self.cached_order[allow] < self.cached_order[quality['identifier']] else 5
+
+            # Give panelty for all lower qualities
+            for q in self.qualities[self.order.index(quality.get('identifier'))+1:]:
+                score[q.get('identifier')]['score'] -= 1
 
     def isFinish(self, quality, profile):
         if not isinstance(profile, dict) or not profile.get('qualities'):
@@ -406,8 +408,10 @@ class QualityPlugin(Plugin):
             'Movie.Name.2004.GERMAN.AC3D.DL.1080p.BluRay.x264-Group': {'size': 8000, 'quality': '1080p'},
             'Movie.Name.2013.BR-Disk-Group.iso': {'size': 48000, 'quality': 'bd50'},
             'Movie.Name.2013.2D+3D.BR-Disk-Group.iso': {'size': 52000, 'quality': 'bd50', 'is_3d': True},
-            'Girl.Rising.2013.NTSC.DVD9-0MNiDVD': {'size': 7200, 'quality': 'dvdr'},
-            'Movie Name (2013) 2D + 3D': {'size': 49000, 'quality': 'bd50', 'is_3d': True}
+            'Movie.Rising.Name.Girl.2011.NTSC.DVD9-GroupDVD': {'size': 7200, 'quality': 'dvdr'},
+            'Movie Name (2013) 2D + 3D': {'size': 49000, 'quality': 'bd50', 'is_3d': True},
+            'Movie Monuments 2013 BrRip 1080p': {'size': 1800, 'quality': 'brrip'},
+            'Movie Monuments 2013 BrRip 720p': {'size': 1300, 'quality': 'brrip'},
         }
 
         correct = 0
